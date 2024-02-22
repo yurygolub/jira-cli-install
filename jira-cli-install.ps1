@@ -1,8 +1,54 @@
+function Install-JiraCli
+{
+    param (
+        [string]$destination
+    )
+
+    $url = 'https://github.com/ankitpokhrel/jira-cli/releases/latest'
+    $redirected = Get-RedirectedUrl $url
+
+    $tagName = Split-Path $redirected -Leaf
+    $archive = "jira_$($tagName.Substring(1))_windows_x86_64.zip"
+
+    if (!(Test-Path -Path $archive))
+    {
+        $downloadUrl = "https://github.com/ankitpokhrel/jira-cli/releases/download/${tagName}/${archive}"
+
+        Write-Host "Downloading `'$archive`' from `'${downloadUrl}`'"
+        Invoke-WebRequest $downloadUrl -OutFile $archive
+    }
+
+    Write-Host "Expanding `'$archive`' to `'${destination}`'"
+    Expand-Archive $archive -DestinationPath $destination -Force
+    Remove-Item $archive
+}
+
 $ErrorActionPreference = "Stop"
 
-if (Get-Command -ErrorAction Ignore -Type Application jira)
+$jiraCommand = Get-Command -ErrorAction Ignore -Type Application jira
+if ($jiraCommand)
 {
-    Write-Warning 'jira-cli already installed'
+    $installationPaths = (Get-Item $jiraCommand.Path).Directory.Parent.FullName
+    if ($installationPaths -isnot [string])
+    {
+        $jiraPath = $installationPaths[0]
+    }
+    else
+    {
+        $jiraPath = $installationPaths
+    }
+
+    Write-Warning "jira-cli already installed: '${jiraPath}'"
+
+    $question = 'Do you want to update it?'
+    $choices = '&Yes', '&No'
+
+    $reinstall = $Host.UI.PromptForChoice($null, $question, $choices, 1)
+    if ($reinstall -eq 0)
+    {
+        Install-JiraCli $jiraPath
+    }
+
     return
 }
 
@@ -88,23 +134,7 @@ $jiraBin = Join-Path $destPath -ChildPath 'bin'
 
 if (!(Test-Path -Path $jiraBin))
 {
-    $url = 'https://github.com/ankitpokhrel/jira-cli/releases/latest'
-    $redirected = Get-RedirectedUrl $url
-
-    $tagName = Split-Path $redirected -Leaf
-    $archive = "jira_$($tagName.Substring(1))_windows_x86_64.zip"
-
-    if (!(Test-Path -Path $archive))
-    {
-        $downloadUrl = "https://github.com/ankitpokhrel/jira-cli/releases/download/${tagName}/${archive}"
-
-        Write-Host "Downloading `'$archive`' from `'${downloadUrl}`'"
-        Invoke-WebRequest $downloadUrl -OutFile $archive
-    }
-
-    $null = New-Item -Path $destPath -ItemType Directory
-    Expand-Archive $archive -DestinationPath $destPath
-    Remove-Item $archive
+    Install-JiraCli $destPath
 }
 
 if (!($apiToken = Read-Host "Input api token. Press enter to get it from clipboard" -MaskInput))
@@ -123,7 +153,8 @@ elseif ($choice -eq 1)
     [Environment]::SetEnvironmentVariable('JIRA_API_TOKEN', $apiToken, [EnvironmentVariableTarget]::User)
 }
 
-function Add-ForSpecifiedPath {
+function Add-ForSpecifiedPath
+{
     param (
         [Parameter(Mandatory = $true)]
         [EnvironmentVariableTarget]$variableTarget
