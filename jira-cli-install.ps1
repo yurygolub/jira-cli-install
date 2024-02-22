@@ -23,6 +23,61 @@ function Install-JiraCli
     Remove-Item $archive
 }
 
+function Get-RedirectedUrl
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [uri]$url,
+        [uri]$referer
+    )
+
+    $req = [Net.WebRequest]::CreateDefault($url)
+    if ($referer)
+    {
+        $req.Referer = $referer
+    }
+
+    $resp = $req.GetResponse()
+
+    if ($resp -and $resp.ResponseUri.OriginalString -ne $url)
+    {
+        Write-Verbose "Found redirected url '$($resp.ResponseUri)'"
+        $result = $resp.ResponseUri.OriginalString
+    }
+    else
+    {
+        Write-Warning 'No redirected url was found, returning given url.'
+        $result = $url
+    }
+
+    $resp.Dispose()
+
+    return $result
+}
+
+function Add-ForSpecifiedPath
+{
+    param (
+        [Parameter(Mandatory = $true)]
+        [EnvironmentVariableTarget]$variableTarget
+    )
+
+    $currentPath = [Environment]::GetEnvironmentVariable('Path', $variableTarget)
+    if (!($currentPath -split ';' -contains $jiraBin))
+    {
+        $question = "Do you want to add `'${jiraBin}`' to Path?"
+        $choices = '&Yes', '&No'
+
+        $addToPath = $Host.UI.PromptForChoice($null, $question, $choices, 1)
+        if ($addToPath -eq 0)
+        {
+            [Environment]::SetEnvironmentVariable('Path', $currentPath + ";${jiraBin}", $variableTarget)
+
+            $env:Path = [System.Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable('Path',[EnvironmentVariableTarget]::User)
+        }
+    }
+}
+
 $ErrorActionPreference = "Stop"
 
 $jiraCommand = Get-Command -ErrorAction Ignore -Type Application jira
@@ -98,38 +153,6 @@ if ($proceedDecision -eq 1)
     return
 }
 
-function Get-RedirectedUrl
-{
-    param(
-        [Parameter(Mandatory = $true)]
-        [uri]$url,
-        [uri]$referer
-    )
-
-    $req = [Net.WebRequest]::CreateDefault($url)
-    if ($referer)
-    {
-        $req.Referer = $referer
-    }
-
-    $resp = $req.GetResponse()
-
-    if ($resp -and $resp.ResponseUri.OriginalString -ne $url)
-    {
-        Write-Verbose "Found redirected url '$($resp.ResponseUri)'"
-        $result = $resp.ResponseUri.OriginalString
-    }
-    else
-    {
-        Write-Warning 'No redirected url was found, returning given url.'
-        $result = $url
-    }
-
-    $resp.Dispose()
-
-    return $result
-}
-
 $jiraBin = Join-Path $destPath -ChildPath 'bin'
 
 if (!(Test-Path -Path $jiraBin))
@@ -151,29 +174,6 @@ if ($choice -eq 0)
 elseif ($choice -eq 1)
 {
     [Environment]::SetEnvironmentVariable('JIRA_API_TOKEN', $apiToken, [EnvironmentVariableTarget]::User)
-}
-
-function Add-ForSpecifiedPath
-{
-    param (
-        [Parameter(Mandatory = $true)]
-        [EnvironmentVariableTarget]$variableTarget
-    )
-
-    $currentPath = [Environment]::GetEnvironmentVariable('Path', $variableTarget)
-    if (!($currentPath -split ';' -contains $jiraBin))
-    {
-        $question = "Do you want to add `'${jiraBin}`' to Path?"
-        $choices = '&Yes', '&No'
-
-        $addToPath = $Host.UI.PromptForChoice($null, $question, $choices, 1)
-        if ($addToPath -eq 0)
-        {
-            [Environment]::SetEnvironmentVariable('Path', $currentPath + ";${jiraBin}", $variableTarget)
-
-            $env:Path = [System.Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable('Path',[EnvironmentVariableTarget]::User)
-        }
-    }
 }
 
 if ($choice -eq 0)
