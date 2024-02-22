@@ -2,6 +2,8 @@
 
 ## Install
 
+Create Personal Access Token in your jira account
+
 Set execution policy
 
 ```sh
