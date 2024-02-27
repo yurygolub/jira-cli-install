@@ -12,37 +12,37 @@ function Install-JiraCli
 
     if (!(Test-Path -Path $archive))
     {
-        $downloadUrl = "https://github.com/ankitpokhrel/jira-cli/releases/download/${tagName}/${archive}"
+        $downloadUrl = "https://github.com/ankitpokhrel/jira-cli/releases/download/$tagName/$archive"
 
-        Write-Host "Downloading `'$archive`' from `'${downloadUrl}`'"
+        Write-Host "Downloading '$archive' from '$downloadUrl'"
         Invoke-WebRequest $downloadUrl -OutFile $archive
     }
 
-    Write-Host "Expanding `'$archive`' to `'${destination}`'"
+    Write-Host "Expanding '$archive' to '$destination'"
     Expand-Archive $archive -DestinationPath $destination -Force
     Remove-Item $archive
 }
 
 function Get-RedirectedUrl
 {
-    param(
+    param (
         [Parameter(Mandatory = $true)]
         [uri]$url,
         [uri]$referer
     )
 
-    $req = [Net.WebRequest]::CreateDefault($url)
+    $request = [Net.WebRequest]::CreateDefault($url)
     if ($referer)
     {
-        $req.Referer = $referer
+        $request.Referer = $referer
     }
 
-    $resp = $req.GetResponse()
+    $response = $request.GetResponse()
 
-    if ($resp -and $resp.ResponseUri.OriginalString -ne $url)
+    if ($response -and $response.ResponseUri.OriginalString -ne $url)
     {
-        Write-Verbose "Found redirected url '$($resp.ResponseUri)'"
-        $result = $resp.ResponseUri.OriginalString
+        Write-Verbose "Found redirected url '$($response.ResponseUri)'"
+        $result = $response.ResponseUri.OriginalString
     }
     else
     {
@@ -50,7 +50,7 @@ function Get-RedirectedUrl
         $result = $url
     }
 
-    $resp.Dispose()
+    $response.Dispose()
 
     return $result
 }
@@ -65,20 +65,20 @@ function Add-ForSpecifiedPath
     $currentPath = [Environment]::GetEnvironmentVariable('Path', $variableTarget)
     if (!($currentPath -split ';' -contains $jiraBin))
     {
-        $question = "Do you want to add `'${jiraBin}`' to Path?"
+        $question = "Do you want to add '$jiraBin' to Path?"
         $choices = '&Yes', '&No'
 
         $addToPath = $Host.UI.PromptForChoice($null, $question, $choices, 1)
         if ($addToPath -eq 0)
         {
-            [Environment]::SetEnvironmentVariable('Path', $currentPath + ";${jiraBin}", $variableTarget)
+            [Environment]::SetEnvironmentVariable('Path', $currentPath + ";$jiraBin", $variableTarget)
 
-            $env:Path = [System.Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::Machine) + ";" + [System.Environment]::GetEnvironmentVariable('Path',[EnvironmentVariableTarget]::User)
+            $Env:Path = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::Machine) + ";" + [Environment]::GetEnvironmentVariable('Path',[EnvironmentVariableTarget]::User)
         }
     }
 }
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 
 $jiraCommand = Get-Command -ErrorAction Ignore -Type Application jira
 if ($jiraCommand)
@@ -93,7 +93,7 @@ if ($jiraCommand)
         $jiraPath = $installationPaths
     }
 
-    Write-Warning "jira-cli already installed: '${jiraPath}'"
+    Write-Warning "jira-cli already installed: '$jiraPath'"
 
     $question = 'Do you want to update it?'
     $choices = '&Yes', '&No'
@@ -107,25 +107,25 @@ if ($jiraCommand)
     return
 }
 
-$title = "This script will install jira-cli"
-$question = "How do you want to install it?"
+$title = 'This script will install jira-cli'
+$question = 'How do you want to install it?'
 $choices = '&All users', '&Current user'
 
 $choice = $Host.UI.PromptForChoice($title, $question, $choices, 1)
 
 if ($choice -eq 0)
 {
-    if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
+    if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
     {
         Write-Warning 'You have to run this script as admin'
         return
     }
 
-    $defaultPath = $env:ProgramFiles
+    $defaultPath = $Env:ProgramFiles
 }
 elseif ($choice -eq 1)
 {
-    $defaultPath = "${env:USERPROFILE}\AppData\Local\"
+    $defaultPath = "$Env:USERPROFILE\AppData\Local\"
 }
 
 if (!($inputPath = Read-Host "Input installation path. Default is [$defaultPath]"))
@@ -135,14 +135,14 @@ if (!($inputPath = Read-Host "Input installation path. Default is [$defaultPath]
 
 if (!(Test-Path -Path $inputPath))
 {
-    Write-Warning "Invalid path `'${inputPath}`'"
+    Write-Warning "Invalid path '$inputPath'"
     return
 }
 
 $destFolder = 'jira-cli'
 $destPath = Join-Path $inputPath -ChildPath $destFolder
 
-$title = "Latest version of jira-cli will be installed to `'${destPath}`'"
+$title = "Latest version of jira-cli will be installed to '$destPath'"
 $question = 'Are you sure you want to proceed?'
 $choices = '&Yes', '&No'
 
@@ -160,20 +160,23 @@ if (!(Test-Path -Path $jiraBin))
     Install-JiraCli $destPath
 }
 
-if (!($apiToken = Read-Host "Input api token. Press enter to get it from clipboard" -MaskInput))
+if (!$Env:JIRA_API_TOKEN)
 {
-    $apiToken = Get-Clipboard
-}
+    if (!($apiToken = Read-Host 'Input api token. Press enter to get it from clipboard' -MaskInput))
+    {
+        $apiToken = Get-Clipboard
+    }
 
-$Env:JIRA_API_TOKEN = $apiToken
+    $Env:JIRA_API_TOKEN = $apiToken
 
-if ($choice -eq 0)
-{
-    [Environment]::SetEnvironmentVariable('JIRA_API_TOKEN', $apiToken, [EnvironmentVariableTarget]::Machine)
-}
-elseif ($choice -eq 1)
-{
-    [Environment]::SetEnvironmentVariable('JIRA_API_TOKEN', $apiToken, [EnvironmentVariableTarget]::User)
+    if ($choice -eq 0)
+    {
+        [Environment]::SetEnvironmentVariable('JIRA_API_TOKEN', $apiToken, [EnvironmentVariableTarget]::Machine)
+    }
+    elseif ($choice -eq 1)
+    {
+        [Environment]::SetEnvironmentVariable('JIRA_API_TOKEN', $apiToken, [EnvironmentVariableTarget]::User)
+    }
 }
 
 if ($choice -eq 0)

@@ -2,25 +2,25 @@
 
 ## Install
 
-Create Personal Access Token in your jira account
+* Create Personal Access Token in your jira account
 
-Set execution policy
+* Set execution policy
 
-```sh
-Set-ExecutionPolicy Bypass -Scope Process -Force
-```
+    ```sh
+    Set-ExecutionPolicy Bypass -Scope Process -Force
+    ```
 
-Run script
+* Run script
 
-```sh
-.\jira-cli-install.ps1
-```
+    ```sh
+    .\jira-cli-install.ps1
+    ```
 
-Check installation
+* Check installation
 
-```sh
-jira
-```
+    ```sh
+    jira
+    ```
 
 ## Configure
 
@@ -30,9 +30,9 @@ Run this to generate config file
 jira init
 ```
 
-Installation type: Local
+Installation type: **Local**
 
-Authentication type: bearer
+Authentication type: **bearer**
 
 Link to Jira server: `your-link`
 
