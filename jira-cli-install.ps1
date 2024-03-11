@@ -1,7 +1,7 @@
 function Install-JiraCli
 {
     param (
-        [string]$destination
+        [string]$Destination
     )
 
     $url = 'https://github.com/ankitpokhrel/jira-cli/releases/latest'
@@ -18,8 +18,8 @@ function Install-JiraCli
         Invoke-WebRequest $downloadUrl -OutFile $archive
     }
 
-    Write-Host "Expanding '$archive' to '$destination'"
-    Expand-Archive $archive -DestinationPath $destination -Force
+    Write-Host "Expanding '$archive' to '$Destination'"
+    Expand-Archive $archive -DestinationPath $Destination -Force
     Remove-Item $archive
 }
 
@@ -27,19 +27,19 @@ function Get-RedirectedUrl
 {
     param (
         [Parameter(Mandatory = $true)]
-        [uri]$url,
-        [uri]$referer
+        [uri]$Url,
+        [uri]$Referer
     )
 
-    $request = [Net.WebRequest]::CreateDefault($url)
-    if ($referer)
+    $request = [Net.WebRequest]::CreateDefault($Url)
+    if ($Referer)
     {
-        $request.Referer = $referer
+        $request.Referer = $Referer
     }
 
     $response = $request.GetResponse()
 
-    if ($response -and $response.ResponseUri.OriginalString -ne $url)
+    if ($response -and $response.ResponseUri.OriginalString -ne $Url)
     {
         Write-Verbose "Found redirected url '$($response.ResponseUri)'"
         $result = $response.ResponseUri.OriginalString
@@ -47,7 +47,7 @@ function Get-RedirectedUrl
     else
     {
         Write-Warning 'No redirected url was found, returning given url.'
-        $result = $url
+        $result = $Url
     }
 
     $response.Dispose()
@@ -59,10 +59,10 @@ function Add-ForSpecifiedPath
 {
     param (
         [Parameter(Mandatory = $true)]
-        [EnvironmentVariableTarget]$variableTarget
+        [EnvironmentVariableTarget]$VariableTarget
     )
 
-    $currentPath = [Environment]::GetEnvironmentVariable('Path', $variableTarget)
+    $currentPath = [Environment]::GetEnvironmentVariable('Path', $VariableTarget)
     if (!($currentPath -split ';' -contains $jiraBin))
     {
         $question = "Do you want to add '$jiraBin' to Path?"
@@ -71,7 +71,7 @@ function Add-ForSpecifiedPath
         $addToPath = $Host.UI.PromptForChoice($null, $question, $choices, 1)
         if ($addToPath -eq 0)
         {
-            [Environment]::SetEnvironmentVariable('Path', $currentPath + ";$jiraBin", $variableTarget)
+            [Environment]::SetEnvironmentVariable('Path', $currentPath + ";$jiraBin", $VariableTarget)
 
             $Env:Path = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::Machine) + ";" + [Environment]::GetEnvironmentVariable('Path',[EnvironmentVariableTarget]::User)
         }
