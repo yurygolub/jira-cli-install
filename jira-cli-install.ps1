@@ -59,19 +59,22 @@ function Add-ForSpecifiedPath
 {
     param (
         [Parameter(Mandatory = $true)]
+        [string]$Value,
+
+        [Parameter(Mandatory = $true)]
         [EnvironmentVariableTarget]$VariableTarget
     )
 
     $currentPath = [Environment]::GetEnvironmentVariable('Path', $VariableTarget)
-    if (!($currentPath -split ';' -contains $jiraBin))
+    if (!($currentPath -split ';' -contains $Value))
     {
-        $question = "Do you want to add '$jiraBin' to Path?"
+        $question = "Do you want to add '$Value' to Path?"
         $choices = '&Yes', '&No'
 
         $addToPath = $Host.UI.PromptForChoice($null, $question, $choices, 1)
         if ($addToPath -eq 0)
         {
-            [Environment]::SetEnvironmentVariable('Path', $currentPath + ";$jiraBin", $VariableTarget)
+            [Environment]::SetEnvironmentVariable('Path', $currentPath + ";$Value", $VariableTarget)
 
             $Env:Path = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::Machine) + ";" + [Environment]::GetEnvironmentVariable('Path',[EnvironmentVariableTarget]::User)
         }
@@ -181,11 +184,11 @@ if (!$Env:JIRA_API_TOKEN)
 
 if ($choice -eq 0)
 {
-    Add-ForSpecifiedPath Machine
+    Add-ForSpecifiedPath -Value $jiraBin -VariableTarget Machine
 }
 elseif ($choice -eq 1)
 {
-    Add-ForSpecifiedPath User
+    Add-ForSpecifiedPath -Value $jiraBin -VariableTarget User
 }
 
 Write-Host 'Installation successfull'
